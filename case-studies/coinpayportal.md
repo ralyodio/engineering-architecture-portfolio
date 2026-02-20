@@ -72,44 +72,39 @@ Merchants need to accept crypto payments without custodial risk, across multiple
 
 ## D. Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Client Layer                              │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────┐  ┌─────────────┐ │
-│  │ Merchant  │  │  Web Wallet  │  │ x402    │  │  Escrow     │ │
-│  │ Dashboard │  │  (Browser)   │  │ Client  │  │  Parties    │ │
-│  └─────┬─────┘  └──────┬───────┘  └────┬────┘  └──────┬──────┘ │
-└────────┼───────────────┼───────────────┼──────────────┼─────────┘
-         │               │               │              │
-┌────────▼───────────────▼───────────────▼──────────────▼─────────┐
-│                    API Layer (Next.js)                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
-│  │ Payment  │  │ Wallet   │  │ x402     │  │ Escrow         │  │
-│  │ Routes   │  │ Routes   │  │ Verify/  │  │ Routes         │  │
-│  │          │  │          │  │ Settle   │  │                │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬────────┘  │
-│       │              │              │                │           │
-│  ┌────▼──────────────▼──────────────▼────────────────▼────────┐ │
-│  │              Service Layer                                  │ │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐ │ │
-│  │  │ Wallet Gen  │  │ Blockchain   │  │ Reputation/DID    │ │ │
-│  │  │ (HD Derive) │  │ Monitor      │  │ (Trust Vectors)   │ │ │
-│  │  └──────┬──────┘  └──────┬───────┘  └────────┬──────────┘ │ │
-│  │         │                │                    │            │ │
-│  │  ┌──────▼────────────────▼────────────────────▼──────────┐ │ │
-│  │  │           Payment Forwarding Engine                    │ │ │
-│  │  │  (Detect → Confirm → Fee Extract → Forward → Webhook) │ │ │
-│  │  └──────────────────────┬─────────────────────────────────┘ │ │
-│  └─────────────────────────┼───────────────────────────────────┘ │
-└────────────────────────────┼─────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
-    ┌────▼────┐      ┌──────▼──────┐     ┌──────▼──────┐
-    │Supabase │      │ Blockchains │     │  Lightning  │
-    │ (PG+RLS)│      │ BTC BCH ETH │     │  CLN/LNbits │
-    │         │      │ POL SOL USDC│     │  BOLT12     │
-    └─────────┘      └─────────────┘     └─────────────┘
+```mermaid
+graph TB
+    subgraph Clients["Client Layer"]
+        MD[Merchant Dashboard]
+        WW[Web Wallet - Browser]
+        X4C[x402 Client]
+        EP[Escrow Parties]
+    end
+
+    subgraph API["API Layer — Next.js"]
+        PR[Payment Routes]
+        WR[Wallet Routes]
+        XR[x402 Verify/Settle]
+        ER[Escrow Routes]
+    end
+
+    subgraph Services["Service Layer"]
+        WG[Wallet Gen - HD Derive]
+        BM[Blockchain Monitor]
+        RD[Reputation/DID - Trust Vectors]
+        PFE[Payment Forwarding Engine<br/>Detect → Confirm → Fee Extract → Forward → Webhook]
+    end
+
+    subgraph Data["Data & Infrastructure"]
+        SB[(Supabase — PG + RLS)]
+        BC[Blockchains<br/>BTC · BCH · ETH · POL · SOL · USDC]
+        LN[Lightning<br/>CLN / LNbits · BOLT12]
+    end
+
+    MD & WW & X4C & EP --> PR & WR & XR & ER
+    PR & WR & XR & ER --> WG & BM & RD
+    WG & BM & RD --> PFE
+    PFE --> SB & BC & LN
 ```
 
 ### Subsystem Breakdown
