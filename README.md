@@ -1,0 +1,167 @@
+# Anthony Ettinger
+
+## AI Infrastructure & Payments Systems Architect
+
+I design and build production systems in payments, identity, and AI-native SaaS platforms. The case studies below document real systems I've designed, deployed, and operate in production. No hype. No buzzwords. No startup fluff.
+
+---
+
+## Selected Architecture Case Studies
+
+### 1. Multi-Chain Payment Infrastructure
+
+**System: [CoinPayPortal](https://coinpayportal.com)**
+
+#### System Overview
+
+- **Wallet abstraction layer** spanning ETH, SOL, BTC, BCH, DOGE, XRP, ADA, BNB, and stablecoins (USDT, USDC across multiple chains)
+- **HD wallet derivation** — system-owned wallets generate unique per-payment addresses from a single mnemonic, enabling deterministic address generation and commission splitting
+- **Lightning Network integration** via LNbits for instant BTC micropayments
+- **Stripe Connect multi-tenant architecture** — parallel fiat payment rail with per-merchant onboarding
+- **Escrow separation model** — isolated escrow wallets with time-locked release conditions, separate from merchant payment flow
+- **DID-based identity layer** — merchant authentication via cryptographic key pairs, not passwords
+
+#### Core Engineering Decisions
+
+| Decision | Tradeoff |
+|---|---|
+| Namespace isolation for `stripe_*` tables | Prevents coupling between crypto and fiat payment domains. Adds schema complexity but eliminates cross-domain migration risk. |
+| System-owned wallets over merchant-hosted | CoinPay holds custody during payment window. Enables commission extraction (0.5–1%) at the protocol level. Increases trust surface but simplifies merchant onboarding. |
+| Payment domain separated from identity domain | Merchant auth, wallet management, and payment processing are independent subsystems. Any one can be replaced without cascading changes. |
+| Per-payment derived addresses | Each payment gets a unique address derived from HD wallet index. Eliminates address reuse, simplifies reconciliation, increases on-chain privacy. |
+| Encrypted private key storage | Payment address private keys are AES-encrypted at rest. Decryption only occurs during settlement sweep. Reduces blast radius of DB compromise. |
+
+#### Fraud Surface Reduction
+
+- No merchant-supplied addresses in the payment flow — all funds route through system wallets first
+- Commission is deducted before merchant settlement, not after
+- Webhook signature verification with replay prevention (nonce + timestamp window)
+- Rate limiting on wallet creation (Supabase-backed, survives deploys)
+
+#### Scaling Considerations
+
+- **Queue-based transaction processing** — payment status checks and settlement sweeps are decoupled from request/response cycle
+- **Horizontal DB partition strategy** — `payment_addresses` and `business_wallets` are partitioned by cryptocurrency, enabling per-chain scaling
+- **Failure domain isolation** — Lightning failures don't affect on-chain payments; Stripe failures don't affect crypto
+- **Observability** — structured logging with request IDs across webhook processing, payment creation, and settlement
+
+#### If Scaling to 10x or 100x
+
+**What breaks first:**
+- `system_wallet_indexes` becomes a write bottleneck — single row per cryptocurrency with atomic increment. At high concurrency, this serializes all payment creation for a given chain.
+- Settlement sweep jobs are currently sequential per chain. At 100x volume, sweep latency exceeds block confirmation windows.
+
+**Redesign for team scaling:**
+- Extract payment processing into a standalone service with its own DB. The current monolith couples UI, API, and payment logic.
+- Separate the wallet derivation service from the payment orchestration service. Different security boundaries, different deployment cadences.
+
+**Where coupling exists:**
+- Merchant auth and payment creation share a Supabase client instance. A Supabase outage blocks both.
+- Webhook processing and payment status checks share the same DB connection pool.
+
+**Where tech debt accumulates:**
+- `as any` casts on Supabase insert calls where generated types lag behind migrations.
+- Commission rate logic is duplicated between `system-wallet.ts` and the fee calculation module.
+
+**Where monitoring must improve:**
+- No alerting on settlement sweep failures — a stuck sweep silently holds merchant funds.
+- No metrics on HD wallet index growth rate — running out of derivation space is a silent failure.
+- Webhook processing latency is logged but not tracked as a histogram.
+
+---
+
+### 2. High-Volume Metadata Ingestion System
+
+**System: [BitTorrented](https://bittorrented.com)**
+
+#### System Overview
+
+- **6.5M+ torrent metadata records** ingested from DHT network via BitMagnet crawler
+- **Dual-source search** — user-submitted torrents (PostgreSQL) and DHT torrents (1.8M+ rows) unified through a single search interface
+- **TMDB content enrichment** — automated matching of torrent names to movie/TV metadata with poster art, cast, and genre data
+- **Netflix-style profile system** — per-profile favorites, watch history, podcast subscriptions, and collections with strict data isolation
+- **IPTV integration** — M3U playlist parsing, EPG guide data, and proxy streaming with HLS support
+
+#### Core Engineering Decisions
+
+| Decision | Tradeoff |
+|---|---|
+| Longest-word-first search strategy | Two-phase search: GIN index scan on most selective word, then ILIKE filter for remaining terms. 10x faster than naive `ILIKE '%query%'` on 1.8M rows. Trades query complexity for consistent sub-second results. |
+| Profile ID on all user-scoped tables | Every content interaction (favorites, history, comments, votes) is keyed by `profile_id`, not `user_id`. Enables Netflix-style family sharing with zero data leakage between profiles. Required migrating 10+ tables and all API routes. |
+| No profile fallback — ever | `getActiveProfileId()` returns null if no profile cookie exists. Forces explicit profile selection. Eliminated an entire class of "wrong user sees wrong data" bugs. |
+| Denormalized TMDB metadata on watchlist items | Watchlist items store title, poster, overview directly rather than joining to a TMDB cache table. Trades storage for read speed and eliminates TMDB API as a runtime dependency. |
+| Service-role Supabase client for all server operations | Bypasses RLS entirely. Simplifies query logic but requires application-level authorization checks on every route. |
+
+#### Query Optimization Under Constraints
+
+- **8-core / 15GB RAM server** — no room for in-memory caches or materialized views
+- **FTS GIN index** (`idx_torrents_name_fts`) on `to_tsvector('simple', name)` for DHT torrents — `simple` config because torrent names aren't natural language
+- **Trigram GIN index** (`idx_torrents_name_trgm`) as fallback for substring matching
+- **Statement timeout** set to 30s on search function to prevent runaway queries from blocking the connection pool
+- **Storage growth modeling**: 9GB at 5M records → projecting 18GB at 10M. Currently growing at ~100K records/day.
+
+#### Profile System Architecture
+
+```
+account (auth.users)
+  └── profiles[] (max 10 per account)
+        ├── favorites (torrents, IPTV channels, files)
+        ├── collections
+        ├── watch history
+        ├── podcast subscriptions + listen progress
+        ├── radio favorites
+        ├── watchlists + items
+        └── comments + votes
+
+account-level (shared across profiles):
+  ├── IPTV playlists/providers
+  ├── subscription/billing
+  └── family plan management
+```
+
+- Middleware enforces profile selection: authenticated users without `x-profile-id` cookie are redirected to `/select-profile`
+- "Set as default" is per-device (localStorage), not DB-level — different devices can have different default profiles
+- Logout clears `localStorage.clear()` + both auth and profile cookies
+
+#### If Scaling to 10x or 100x
+
+**What breaks first:**
+- DHT search at 18M+ rows. The two-phase search strategy (GIN index → ILIKE filter) breaks down when the GIN index returns too many candidates for the longest word. Common words like "the" or "2024" would return millions of candidates.
+- `bt_torrent_comments` and `bt_torrent_votes` with profile-scoped queries. Currently no composite index on `(torrent_id, profile_id)` — each query does an index scan + filter.
+
+**Redesign for team scaling:**
+- Extract the search function into a dedicated search service (Meilisearch or Typesense). PostgreSQL full-text search was the right call at 1M rows, wrong call at 50M.
+- Separate the ingestion pipeline (BitMagnet) from the serving database. Currently they share a Postgres instance — ingestion write load directly impacts search latency.
+
+**Where coupling exists:**
+- BitMagnet writes directly to the same Postgres instance that serves API queries. A large ingestion batch causes query timeouts.
+- Profile enforcement is split between middleware (page redirects) and individual API routes (400 responses). No centralized auth/profile gate.
+
+**Where tech debt accumulates:**
+- `as any` casts on 10+ tables where Supabase generated types don't include `profile_id` columns yet.
+- Dead `getUserIdFromRequest` helper functions remain in several route files after the user_id → profile_id migration.
+- Comment user display shows `user@example.com` placeholder — actual profile name lookup not yet wired.
+
+**Where monitoring must improve:**
+- No metrics on search latency percentiles — can't tell when DHT search is degrading.
+- No alerting on BitMagnet ingestion rate drops — crawler failures are silent.
+- Profile-scoped query performance is untracked — no way to detect if one profile's data volume causes slowdowns.
+
+---
+
+## Engineering Philosophy
+
+- **Design for failure domains first.** Every subsystem should be able to fail without cascading. Payment failures don't break identity. Search failures don't break playback.
+- **Separate payment, identity, and state layers.** These change at different rates, have different security requirements, and serve different stakeholders. Coupling them is a future rewrite.
+- **Prefer extensible abstractions over brittle integrations.** A wallet abstraction layer that supports 14 chains is more valuable than 14 chain-specific implementations. But the abstraction must earn its complexity.
+- **Model scaling paths before optimizing prematurely.** Know what breaks at 10x before spending cycles on optimization at 1x. Document the plan, not the premature implementation.
+- **Optimize for long-term maintainability over short-term velocity.** Function names don't lie (`getActiveProfileId`, not `getCurrentProfileIdWithFallback` when there is no fallback). Dead code gets deleted. Migrations get written.
+
+---
+
+## Implementation
+
+Full source code and deployment infrastructure available under the [Profullstack](https://github.com/profullstack) organization.
+
+- [CoinPayPortal](https://github.com/profullstack/coinpayportal) — Payment infrastructure
+- [BitTorrented / Media Streamer](https://github.com/profullstack/media-streamer) — Content platform
