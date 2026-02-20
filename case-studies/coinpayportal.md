@@ -1,5 +1,24 @@
 # CoinPayPortal — Multi-Chain Payment Infrastructure
 
+## My Role & Ownership
+
+I designed and implemented the entire architecture of CoinPayPortal from zero, including:
+
+- Multi-chain wallet abstraction layer (HD derivation across 7 chains from single mnemonic)
+- Payment forwarding engine (detection → confirmation → fee extraction → settlement)
+- Lightning integration architecture (CLN + LNbits, BOLT12 offers)
+- Stripe Connect domain separation (card payments isolated from crypto)
+- Escrow service with token-based auth (no accounts required)
+- x402 machine-payment protocol (only multi-chain facilitator in production)
+- DID-based portable reputation system anchored in real economic activity
+- Non-custodial web wallet (client-side encryption, no KYC)
+- Data modeling, namespace isolation, and RLS-based multi-tenant security
+- Production deployment, incident response, and operational ownership
+
+I owned system design, data modeling, integration strategy, security architecture, and production operations as a solo architect.
+
+---
+
 ## A. Summary
 
 CoinPayPortal is a non-custodial cryptocurrency payment gateway I designed and built that enables merchants to accept payments across 7 blockchains (BTC, BCH, ETH, POL, SOL, USDC on 4 chains) plus Lightning Network and Stripe card payments.
