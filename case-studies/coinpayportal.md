@@ -306,26 +306,26 @@ Keep as modular monolith until team exceeds 4-5 engineers, then extract along th
 ## I. Links
 
 ### Architecture & Design
-- [Architecture Overview](https://github.com/profullstack/coinpayportal/blob/main/docs/ARCHITECTURE.md)
-- [Database Schema](https://github.com/profullstack/coinpayportal/blob/main/docs/DATABASE.md)
-- [Security Documentation](https://github.com/profullstack/coinpayportal/blob/main/docs/SECURITY.md)
-- [DID Reputation System](https://github.com/profullstack/coinpayportal/blob/main/docs/DID_REPUTATION_SYSTEM.md)
+- [Architecture Overview](https://github.com/profullstack/coinpayportal/blob/master/docs/ARCHITECTURE.md)
+- [Database Schema](https://github.com/profullstack/coinpayportal/blob/master/docs/DATABASE.md)
+- [Security Documentation](https://github.com/profullstack/coinpayportal/blob/master/docs/SECURITY.md)
+- [DID Reputation System](https://github.com/profullstack/coinpayportal/blob/master/docs/DID_REPUTATION_SYSTEM.md)
 
 ### API & SDK
-- [API Documentation](https://github.com/profullstack/coinpayportal/blob/main/docs/API.md)
-- [Lightning API](https://github.com/profullstack/coinpayportal/blob/main/docs/api/lightning-api.md)
-- [Web Wallet API](https://github.com/profullstack/coinpayportal/blob/main/docs/api/web-wallet-api.md)
-- [SDK Getting Started](https://github.com/profullstack/coinpayportal/blob/main/docs/sdk/getting-started.md)
-- [x402 Integration](https://github.com/profullstack/coinpayportal/blob/main/docs/X402_INTEGRATION.md)
+- [API Documentation](https://github.com/profullstack/coinpayportal/blob/master/docs/API.md)
+- [Lightning API](https://github.com/profullstack/coinpayportal/blob/master/docs/api/lightning-api.md)
+- [Web Wallet API](https://github.com/profullstack/coinpayportal/blob/master/docs/api/web-wallet-api.md)
+- [SDK Getting Started](https://github.com/profullstack/coinpayportal/blob/master/docs/sdk/getting-started.md)
+- [x402 Integration](https://github.com/profullstack/coinpayportal/blob/master/docs/X402_INTEGRATION.md)
 
 ### Decision Records
-- [Credit Card Processing Decision](https://github.com/profullstack/coinpayportal/blob/main/docs/CREDIT_CARD_DECISION.md)
-- [Escrow Design](https://github.com/profullstack/coinpayportal/blob/main/docs/ESCROW.md)
-- [Platform Integration Guide](https://github.com/profullstack/coinpayportal/blob/main/docs/PLATFORM_INTEGRATION.md)
+- [Credit Card Processing Decision](https://github.com/profullstack/coinpayportal/blob/master/docs/CREDIT_CARD_DECISION.md)
+- [Escrow Design](https://github.com/profullstack/coinpayportal/blob/master/docs/ESCROW.md)
+- [Platform Integration Guide](https://github.com/profullstack/coinpayportal/blob/master/docs/PLATFORM_INTEGRATION.md)
 
 ### Web Wallet Deep Dive
-- [Overview](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/01-OVERVIEW.md)
-- [Architecture](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/02-ARCHITECTURE.md)
-- [Database Schema](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/03-DATABASE-SCHEMA.md)
-- [Key Management](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/06-KEY-MANAGEMENT.md)
-- [Security](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/11-SECURITY.md)
+- [Overview](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/01-OVERVIEW.md)
+- [Architecture](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/02-ARCHITECTURE.md)
+- [Database Schema](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/03-DATABASE-SCHEMA.md)
+- [Key Management](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/06-KEY-MANAGEMENT.md)
+- [Security](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/11-SECURITY.md)

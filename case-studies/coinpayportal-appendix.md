@@ -4,13 +4,13 @@
 
 | Diagram | Location | Description |
 |---------|----------|-------------|
-| System Architecture (Mermaid) | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/main/docs/ARCHITECTURE.md) | High-level component diagram |
-| Payment Flow (Sequence) | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/main/docs/ARCHITECTURE.md) | Customer → Chain → Forward → Webhook |
-| Entity Relationship | [DATABASE.md](https://github.com/profullstack/coinpayportal/blob/main/docs/DATABASE.md) | Full ER diagram (Mermaid) |
-| Deployment Architecture | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/main/docs/ARCHITECTURE.md) | Vercel + Supabase + RPC topology |
-| DID Reputation Flow | [DID_REPUTATION_SYSTEM.md](https://github.com/profullstack/coinpayportal/blob/main/docs/DID_REPUTATION_SYSTEM.md) | Escrow → ActionReceipt → Trust Vector |
-| Web Wallet Architecture | [web-wallet/02-ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/02-ARCHITECTURE.md) | Client-side encryption & key flow |
-| Web Wallet Key Management | [web-wallet/06-KEY-MANAGEMENT.md](https://github.com/profullstack/coinpayportal/blob/main/docs/web-wallet/06-KEY-MANAGEMENT.md) | HD derivation & encryption details |
+| System Architecture (Mermaid) | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/master/docs/ARCHITECTURE.md) | High-level component diagram |
+| Payment Flow (Sequence) | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/master/docs/ARCHITECTURE.md) | Customer → Chain → Forward → Webhook |
+| Entity Relationship | [DATABASE.md](https://github.com/profullstack/coinpayportal/blob/master/docs/DATABASE.md) | Full ER diagram (Mermaid) |
+| Deployment Architecture | [ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/master/docs/ARCHITECTURE.md) | Vercel + Supabase + RPC topology |
+| DID Reputation Flow | [DID_REPUTATION_SYSTEM.md](https://github.com/profullstack/coinpayportal/blob/master/docs/DID_REPUTATION_SYSTEM.md) | Escrow → ActionReceipt → Trust Vector |
+| Web Wallet Architecture | [web-wallet/02-ARCHITECTURE.md](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/02-ARCHITECTURE.md) | Client-side encryption & key flow |
+| Web Wallet Key Management | [web-wallet/06-KEY-MANAGEMENT.md](https://github.com/profullstack/coinpayportal/blob/master/docs/web-wallet/06-KEY-MANAGEMENT.md) | HD derivation & encryption details |
 
 ## Technology Stack
 
