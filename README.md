@@ -16,11 +16,11 @@ Non-custodial crypto payment gateway supporting 7 blockchains, Lightning Network
 - [Technical appendix & diagram index](case-studies/coinpayportal-appendix.md)
 - [Implementation source (Profullstack org)](https://github.com/profullstack/coinpayportal)
 
-### [BitTorrented — High-Volume Media & Metadata Indexing](case-studies/bittorrented.md) *(coming soon)*
+### [BitTorrented — High-Volume Media Platform with Profile Isolation](case-studies/bittorrented.md)
 
-Netflix-style multi-profile streaming platform with 6.5M+ indexed torrents, IPTV integration, podcast/radio aggregation, and profile-scoped data isolation.
+Netflix-style multi-profile streaming platform with 6.5M+ indexed torrents, IPTV integration, podcast/radio aggregation, on-demand transcoding, and strict per-profile data isolation.
 
-**Domains:** Content indexing at scale · Profile isolation · Media streaming · Real-time search
+**Domains:** Content indexing at scale · Profile isolation · Media streaming · On-demand transcoding · Real-time search · DHT crawling
 
 ---
 
