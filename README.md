@@ -149,6 +149,90 @@ account-level (shared across profiles):
 
 ---
 
+### 3. P2P WebRTC Video Call Infrastructure
+
+**System: [PairUX](https://pairux.com)**
+
+#### System Overview
+
+- **Peer-to-peer screen sharing with simultaneous remote control** — host and viewer can control the same screen at the same time, with host priority
+- **WebRTC direct P2P connections** — media never touches servers. DTLS-SRTP encrypted by default.
+- **Tiered scaling architecture** — P2P for 1:1/small groups, SFU (Selective Forwarding Unit) for 10–100+ viewers, cascaded multi-region SFUs for 500+
+- **Supabase Realtime as signaling plane** — WebRTC offer/answer/ICE exchange without a custom signaling server
+- **Self-hosted coturn TURN server** — relay fallback for restrictive NATs, fully controlled infrastructure
+- **Cross-platform distribution** — Electron desktop app (macOS/Windows/Linux) + PWA browser viewer. Published via Homebrew, WinGet, APT, AUR, Scoop, Chocolatey, RPM, Nix, Gentoo overlay, and AppImage.
+
+#### Core Engineering Decisions
+
+| Decision | Tradeoff |
+|---|---|
+| Media plane / control plane separation | Media routing (P2P or SFU) and session orchestration (signaling, state, roles) are independent subsystems. They scale differently — media is bandwidth-heavy, control is consistency-heavy. Coupling them means you can't scale one without the other. |
+| Client-side topology decision (MVP) | Host chooses P2P or SFU at session start. No server-side orchestrator. Eliminates a service dependency at the cost of global optimization. Server-side Session Focus service is the planned upgrade path. |
+| Supabase Realtime for signaling | Eliminates custom WebSocket server. Provides auth integration, presence, and broadcast for free. Tradeoff: dependent on Supabase's realtime infrastructure for connection establishment. |
+| nut.js for input injection | Cross-platform mouse/keyboard injection on the host. Required for remote control — no browser API exists for injecting OS-level input. Requires Accessibility permissions on macOS. |
+| Self-hosted TURN over managed | Full control over relay infrastructure. Only used when P2P fails (~10-15% of connections due to symmetric NATs). Predictable cost vs per-minute billing. |
+| Three-role model: host / controller / viewer | Host shares screen and grants control (1 per session). Controllers can view and send input (max 3). Viewers are receive-only (25 P2P / 100+ SFU). Clear permission boundaries prevent "everyone sends everything" chaos. |
+
+#### Network Architecture
+
+```
+Host Desktop ◄──── WebRTC P2P (direct) ────► Viewer Browser
+     │                                              │
+     ├── ICE candidates via STUN ──────────────────┤
+     │                                              │
+     └── Relay via self-hosted TURN ───────────────┘
+              (only when P2P fails)
+
+Signaling (offer/answer/ICE exchange):
+     Host ◄──► Supabase Realtime ◄──► Viewer
+              (no media passes through)
+```
+
+#### Security Model
+
+- **Transport encryption**: DTLS-SRTP on all WebRTC connections (default, not optional)
+- **Zero server media**: Supabase handles auth and signaling only — screen data never touches backend
+- **Explicit consent**: Host must approve every control request. Emergency revoke via `Ctrl+Shift+Escape`
+- **E2EE upgrade path**: Insertable Streams API for true end-to-end encryption where SFU cannot decrypt. Currently transport-only; E2EE planned for enterprise/compliance use cases.
+
+#### Scaling Architecture
+
+| Scale | Architecture | Capacity | Monthly Cost |
+|---|---|---|---|
+| **Tier 1: P2P** | Direct connections, Supabase signaling, single TURN | 1 host + 25 viewers per session, ~50 concurrent sessions | ~$50–150 |
+| **Tier 2: SFU** | LiveKit or mediasoup, single region | 1 host + 100+ viewers per session, ~200 concurrent sessions | ~$200–600 |
+| **Tier 3: Multi-region** | Regional SFU pools, Session Focus service, bridge cascading | Global <100ms latency, automatic failover | ~$1,000–3,000 |
+| **Tier 4: Enterprise** | Cascaded SFUs, E2EE, auto-scaling, 5+ regions | 1,000+ viewers per session, compliance-ready | $5,000+ |
+
+Each tier has explicit migration triggers — you don't move up until metrics prove you need to.
+
+#### If Scaling to 10x or 100x
+
+**What breaks first:**
+- **P2P connection limit.** At 25+ viewers, each viewer has a direct connection to the host. Host upload bandwidth becomes the bottleneck — a 4Mbps stream × 25 peers = 100Mbps upload. Most residential connections can't sustain this. SFU is mandatory at this point.
+- **Supabase Realtime channel limits.** Each session is a Realtime channel. At 1,000+ concurrent sessions, channel count and message throughput hit Supabase plan limits. Need dedicated signaling or Supabase enterprise tier.
+- **Single TURN server.** At high concurrent relay usage, a single coturn instance saturates its network interface. TURN traffic is full media bitrate — one relayed 4Mbps session costs 8Mbps (in + out).
+
+**Redesign for team scaling:**
+- Extract Session Focus service — server-side orchestrator that assigns SFUs, manages topology upgrades (P2P → SFU), and handles failover. Currently the host decides topology, which doesn't work when the server needs global load visibility.
+- Separate the Electron desktop app and the web viewer into independent release cycles. Currently monorepo'd with Turborepo — fine for 1-2 developers, creates merge conflicts at 5+.
+
+**Where coupling exists:**
+- Signaling and auth share the same Supabase instance. A Supabase outage blocks new connections but doesn't affect established P2P sessions (by design).
+- SFU selection is client-side. The host picks the SFU endpoint at session creation — no server-side load balancing or region-aware routing.
+
+**Where tech debt accumulates:**
+- No automated integration tests for the WebRTC connection flow. Unit tests mock the RTCPeerConnection — real ICE negotiation is only tested manually.
+- TURN server configuration is manual. No infrastructure-as-code, no automated certificate rotation.
+- Desktop app auto-updater is platform-specific with separate code paths for macOS, Windows, and Linux.
+
+**Where monitoring must improve:**
+- No metrics on ICE candidate gathering time — can't detect when TURN fallback rate increases (indicating network infrastructure issues).
+- No alerting on SFU CPU/bandwidth utilization — capacity planning is manual.
+- No per-session quality metrics (frame rate, resolution, latency percentiles) — can't diagnose individual user complaints.
+
+---
+
 ## Engineering Philosophy
 
 - **Design for failure domains first.** Every subsystem should be able to fail without cascading. Payment failures don't break identity. Search failures don't break playback.
@@ -165,3 +249,4 @@ Full source code and deployment infrastructure available under the [Profullstack
 
 - [CoinPayPortal](https://github.com/profullstack/coinpayportal) — Payment infrastructure
 - [BitTorrented / Media Streamer](https://github.com/profullstack/media-streamer) — Content platform
+- [PairUX](https://github.com/profullstack/pairux.com) — P2P screen sharing and remote control
